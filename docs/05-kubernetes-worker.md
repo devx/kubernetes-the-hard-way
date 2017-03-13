@@ -23,61 +23,12 @@ Run the following commands on `worker0`, `worker1`, `worker2`:
 #### Move the TLS certificates in place
 
 ```
-sudo mkdir -p /var/lib/kubernetes
+sudo mkdir -p /opt/kubernetes/etc
 ```
 
 ```
-sudo cp ca.pem kubernetes-key.pem kubernetes.pem /var/lib/kubernetes/
+sudo cp ca.pem kubernetes-key.pem kubernetes.pem /opt/kubernetes/etc/
 ```
-
-#### Docker
-
-Kubernetes should be compatible with the Docker 1.9.x - 1.12.x:
-
-```
-wget https://get.docker.com/builds/Linux/x86_64/docker-1.12.1.tgz
-```
-
-```
-tar -xvf docker-1.12.1.tgz
-```
-
-```
-sudo cp docker/docker* /usr/bin/
-```
-
-Create the Docker systemd unit file:
-
-
-```
-sudo sh -c 'echo "[Unit]
-Description=Docker Application Container Engine
-Documentation=http://docs.docker.io
-
-[Service]
-ExecStart=/usr/bin/docker daemon \
-  --iptables=false \
-  --ip-masq=false \
-  --host=unix:///var/run/docker.sock \
-  --log-level=error \
-  --storage-driver=overlay
-Restart=on-failure
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target" > /etc/systemd/system/docker.service'
-```
-
-```
-sudo systemctl daemon-reload
-sudo systemctl enable docker
-sudo systemctl start docker
-```
-
-```
-sudo docker version
-```
-
 
 #### kubelet
 
@@ -127,7 +78,7 @@ sudo sh -c 'echo "apiVersion: v1
 kind: Config
 clusters:
 - cluster:
-    certificate-authority: /var/lib/kubernetes/ca.pem
+    certificate-authority: /opt/kubernetes/etc/ca.pem
     server: https://10.240.0.10:6443
   name: kubernetes
 contexts:
@@ -164,8 +115,8 @@ ExecStart=/usr/bin/kubelet \
   --kubeconfig=/var/lib/kubelet/kubeconfig \
   --reconcile-cidr=true \
   --serialize-image-pulls=false \
-  --tls-cert-file=/var/lib/kubernetes/kubernetes.pem \
-  --tls-private-key-file=/var/lib/kubernetes/kubernetes-key.pem \
+  --tls-cert-file=/opt/kubernetes/etc/kubernetes.pem \
+  --tls-private-key-file=/opt/kubernetes/etc/kubernetes-key.pem \
   --v=2
   
 Restart=on-failure

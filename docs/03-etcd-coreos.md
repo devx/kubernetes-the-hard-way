@@ -34,21 +34,40 @@ sudo mkdir -p /etc/etcd/
 sudo cp ca.pem kubernetes-key.pem kubernetes.pem /etc/etcd/
 ```
 
-### Configure etcd
+### Download and Install the etcd binaries
+
+Download the official etcd release binaries from `coreos/etcd` GitHub project:
+
+```
+wget https://github.com/coreos/etcd/releases/download/v3.0.15/etcd-v3.0.15-linux-amd64.tar.gz
+```
+
+Extract and install the `etcd` server binary and the `etcdctl` command line client: 
+
+```
+tar -xvf etcd-v3.0.15-linux-amd64.tar.gz
+```
+
+```
+sudo mv etcd-v3.0.15-linux-amd64/etcd* /usr/bin/
+```
+
+All etcd data is stored under the etcd data directory. In a production cluster the data directory should be backed by a persistent disk. Create the etcd data directory:
+
+```
+sudo mkdir -p /var/lib/etcd
+```
 
 The etcd server will be started and managed by systemd. Create the etcd systemd unit file:
 
 ```
 cat > etcd.service <<"EOF"
 [Unit]
-Description=etcd service
-After=docker.service
-Requires=docker.service
+Description=etcd
+Documentation=https://github.com/coreos
 
 [Service]
-TimeoutStartSec=0
-
-ExecStart=/usr/bin/etcd2 --name ETCD_NAME \
+ExecStart=/usr/bin/etcd --name ETCD_NAME \
   --cert-file=/etc/etcd/kubernetes.pem \
   --key-file=/etc/etcd/kubernetes-key.pem \
   --peer-cert-file=/etc/etcd/kubernetes.pem \
@@ -62,7 +81,7 @@ ExecStart=/usr/bin/etcd2 --name ETCD_NAME \
   --initial-cluster-token etcd-cluster-0 \
   --initial-cluster controller0=https://10.240.0.10:2380,controller1=https://10.240.0.11:2380,controller2=https://10.240.0.12:2380 \
   --initial-cluster-state new \
-  --data-dir=/var/lib/etcd2
+  --data-dir=/var/lib/etcd
 Restart=on-failure
 RestartSec=5
 
@@ -88,28 +107,17 @@ INTERNAL_IP=$(curl -s -H "Metadata-Flavor: Google" \
 INTERNAL_IP=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)
 ```
 
-#### OpenStack
-
-```shell
-INTERNAL_IP=$(ifconfig |grep 10.240 |awk '{print $2}')
-```
 ---
 
 Each etcd member must have a unique name within an etcd cluster. Set the etcd name:
 
-```shell
-ETCD_NAME=controller$(echo $INTERNAL_IP | cut -c 11)
 ```
-
-Verify our variables are set
-
-```shell
-echo "etcd: ${ETCD_NAME}, ip: ${INTERNAL_IP}"
+ETCD_NAME=controller$(echo $INTERNAL_IP | cut -c 11)
 ```
 
 Substitute the etcd name and internal IP address:
 
-```shell
+```
 sed -i s/INTERNAL_IP/${INTERNAL_IP}/g etcd.service
 ```
 

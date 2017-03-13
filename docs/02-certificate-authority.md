@@ -239,3 +239,18 @@ for host in ${KUBERNETES_HOSTS[*]}; do
     ubuntu@${PUBLIC_IP_ADDRESS}:~/
 done
 ```
+
+### OpenStack
+
+The following command will:
+ * Extract the public IP address for each Kubernetes host
+ * Copy the TLS certificates and keys to each Kubernetes host using `scp`
+
+```
+for host in ${KUBERNETES_HOSTS[*]}; do
+  PUBLIC_IP_ADDRESS=$(nova show ${host} \
+    --minimal | grep INTERNAL | awk '{print $5}'); \
+  scp ca.pem kubernetes-key.pem kubernetes.pem \
+    core@${PUBLIC_IP_ADDRESS}:~/;
+done
+```

@@ -34,11 +34,11 @@ The TLS certificates created in the [Setting up a CA and TLS Cert Generation](02
 Copy the TLS certificates to the Kubernetes configuration directory:
 
 ```
-sudo mkdir -p /var/lib/kubernetes
+sudo mkdir -p /opt/kubernetes
 ```
 
 ```
-sudo cp ca.pem kubernetes-key.pem kubernetes.pem /var/lib/kubernetes/
+sudo cp ca.pem kubernetes-key.pem kubernetes.pem /opt/kubernetes/etc/
 ```
 
 ### Download and install the Kubernetes controller binaries
@@ -65,7 +65,7 @@ chmod +x kube-apiserver kube-controller-manager kube-scheduler kubectl
 ```
 
 ```
-sudo mv kube-apiserver kube-controller-manager kube-scheduler kubectl /usr/bin/
+sudo mv kube-apiserver kube-controller-manager kube-scheduler kubectl /opt/kubernetes/bin/
 ```
 
 ### Kubernetes API Server
@@ -96,7 +96,7 @@ cat token.csv
 Move the token file into the Kubernetes configuration directory so it can be read by the Kubernetes API server.
 
 ```
-sudo mv token.csv /var/lib/kubernetes/
+sudo mv token.csv /opt/kubernetes/etc/
 ```
 
 ##### Authorization
@@ -118,7 +118,7 @@ cat authorization-policy.jsonl
 Move the authorization policy file into the Kubernetes configuration directory so it can be read by the Kubernetes API server.
 
 ```
-sudo mv authorization-policy.jsonl /var/lib/kubernetes/
+sudo mv authorization-policy.jsonl /opt/kubernetes/etc/
 ```
 
 ### Create the systemd unit file 
@@ -149,25 +149,25 @@ Description=Kubernetes API Server
 Documentation=https://github.com/GoogleCloudPlatform/kubernetes
 
 [Service]
-ExecStart=/usr/bin/kube-apiserver \
+ExecStart=/opt/kubernetes/bin/kube-apiserver \
   --admission-control=NamespaceLifecycle,LimitRanger,SecurityContextDeny,ServiceAccount,ResourceQuota \
   --advertise-address=INTERNAL_IP \
   --allow-privileged=true \
   --apiserver-count=3 \
   --authorization-mode=ABAC \
-  --authorization-policy-file=/var/lib/kubernetes/authorization-policy.jsonl \
+  --authorization-policy-file=/opt/kubernetes/etc/authorization-policy.jsonl \
   --bind-address=0.0.0.0 \
   --enable-swagger-ui=true \
-  --etcd-cafile=/var/lib/kubernetes/ca.pem \
+  --etcd-cafile=/opt/kubernetes/etc/ca.pem \
   --insecure-bind-address=0.0.0.0 \
-  --kubelet-certificate-authority=/var/lib/kubernetes/ca.pem \
+  --kubelet-certificate-authority=/opt/kubernetes/etc/ca.pem \
   --etcd-servers=https://10.240.0.10:2379,https://10.240.0.11:2379,https://10.240.0.12:2379 \
-  --service-account-key-file=/var/lib/kubernetes/kubernetes-key.pem \
+  --service-account-key-file=/opt/kubernetes/etc/kubernetes-key.pem \
   --service-cluster-ip-range=10.32.0.0/24 \
   --service-node-port-range=30000-32767 \
-  --tls-cert-file=/var/lib/kubernetes/kubernetes.pem \
-  --tls-private-key-file=/var/lib/kubernetes/kubernetes-key.pem \
-  --token-auth-file=/var/lib/kubernetes/token.csv \
+  --tls-cert-file=/opt/kubernetes/etc/kubernetes.pem \
+  --tls-private-key-file=/opt/kubernetes/etc/kubernetes-key.pem \
+  --token-auth-file=/opt/kubernetes/etc/token.csv \
   --v=2
 Restart=on-failure
 RestartSec=5
@@ -205,14 +205,14 @@ Description=Kubernetes Controller Manager
 Documentation=https://github.com/GoogleCloudPlatform/kubernetes
 
 [Service]
-ExecStart=/usr/bin/kube-controller-manager \
+ExecStart=/opt/kubernetes/bin/kube-controller-manager \
   --allocate-node-cidrs=true \
   --cluster-cidr=10.200.0.0/16 \
   --cluster-name=kubernetes \
   --leader-elect=true \
   --master=http://INTERNAL_IP:8080 \
-  --root-ca-file=/var/lib/kubernetes/ca.pem \
-  --service-account-private-key-file=/var/lib/kubernetes/kubernetes-key.pem \
+  --root-ca-file=/opt/kubernetes/etc/ca.pem \
+  --service-account-private-key-file=/opt/kubernetes/etc/kubernetes-key.pem \
   --service-cluster-ip-range=10.32.0.0/16 \
   --v=2
 Restart=on-failure
@@ -221,6 +221,10 @@ RestartSec=5
 [Install]
 WantedBy=multi-user.target
 EOF
+```
+
+```shell
+INTERNAL_IP=$(ifconfig |grep 10.240 |awk '{print $2}')
 ```
 
 ```
